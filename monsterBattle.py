@@ -42,27 +42,33 @@ class Monster:
 		self.size = 30
 		self.screen = screen
 	def attack(self, target):
-		target.health -= self.attackPower
+		target.health -= self.attackPower # deal attackPower damage to Target
 	def draw(self):
-		monster_health_text = font.render(f'{self.name} = health:{self.health} ', True, self.colour)
-		screen.blit(monster_health_text, (self.x-80,self.y-70))
-		pygame.draw.rect(self.screen, self.colour, (self.x,self.y,self.size,self.size))
+		monster_health_text = font.render(f'{self.name} = health:{self.health} ', True, self.colour) # render health text
+		screen.blit(monster_health_text, (self.x-80,self.y-70))                                      # <- blit the health text to the screen
+		pygame.draw.rect(self.screen, self.colour, (self.x,self.y,self.size,self.size))              # draw the actual monster
 	
 
 class Warrior(Monster):
 	def __init__(self, hp, colour):
 		super().__init__(hp, colour)
-		self.name = "Warrior"
-		self.attackPower = 7
+		self.name = "Warrior" # rename monster
+		self.attackPower = 7 # raise attackpower from base
 	def attack(self, target):
+		"""
+		deal a random amount of damage between 2 and attackpower (7)
+		"""
 		target.health -= random.randint(2,self.attackPower)
 
 class Mage(Monster):
 	def __init__(self, hp, colour):
 		super().__init__(hp, colour)
 		self.name = "Mage"
-		self.attackPower = 10
+		self.attackPower = 10 # raise attackpower quite a bit from base
 	def attack(self, target):
+		"""
+		deals either 10 or 0 damage (50/50)
+		"""
 		if random.randint(0,1):
 			target.health -= self.attackPower
 
@@ -77,6 +83,7 @@ class Troll(Monster):
 
 class Player(Monster):
 	def __init__(self):
+		self.kills = 0 # unique to player: number of monsters you've killed
 		self.name = "player"
 		self.health = 30
 		self.colour = GREEN
@@ -87,15 +94,22 @@ class Player(Monster):
 		self.size = 40
 		self.screen = screen
 	def attack(self, target):
-		attackDamageTotal = random.randint(self.minAttackPower,self.maxAttackPower)
-		target.health -= attackDamageTotal
-		self.attackText = font.render(f'{self.name} attacks {target.name} with {attackDamageTotal}', True, RED)
-		screen.blit(self.attackText, (400, 200))
+		"""
+		deals a random number between minattackpower (4) and maxattackpower(9)
+		"""
+		attackDamageTotal = random.randint(self.minAttackPower,self.maxAttackPower) # calculate attackDamageTotal
+		target.health -= attackDamageTotal # deal attackDamageTotal damage to target
+		self.attackText = font.render(f'{self.name} attacks {target.name} with {attackDamageTotal}', True, RED) # render attackText object
+		screen.blit(self.attackText, (400, 200)) # blit attackText object to screen above character
 
 
 # == functions??? ==
 def recycle():
+	"""
+	generate a new monster
+	"""
 	return random.choice([Warrior(30,ORANGE),Mage(30,BLUE), Troll(30,YELLOW)])
+
 # == GAME RUN VARS ==
 running = True
 playerObject = Player()
@@ -103,24 +117,38 @@ currentEnemy = recycle()
 # == GAME LOOP ==
 screen.fill(WHITE)
 start_text = font.render(f'PRESS [SPACE] TO START', True, RED)
-screen.blit(start_text, (640, 300))
-
+screen.blit(start_text, (600, 300))
 
 while running:
 	# event handling
 	for event in pygame.event.get():
-		if event.type == pygame.QUIT or playerObject.health <= 0:
-			running = False
+		if event.type == pygame.QUIT:
+			running = False # kill program
 		if event.type == pygame.KEYUP:
 			if event.key == pygame.K_SPACE:
-				playerObject.attack(currentEnemy)
-				screen.fill(WHITE)
-				playerObject.draw()
-				playerObject.attack(currentEnemy)
-				if currentEnemy.health <= 0:
-					currentEnemy = recycle()
-				else:	
-					currentEnemy.attack(playerObject)
+				## == MAIN GAME LOOP == 
+				if playerObject.health >= 0: # if player is alive
+					# = player handling
+					playerObject.attack(currentEnemy) # player attack enemy
+					screen.fill(WHITE) # clear screen
+					playerObject.draw() # draw player
+					playerObject.attack(currentEnemy)
+					# = enemy handling
+					if currentEnemy.health <= 0: # replace dead enemies
+						currentEnemy = recycle()
+						playerObject.kills += 1
+					elif currentEnemy.health >= 0: # if enemy is alive attack
+						currentEnemy.attack(playerObject)
 					currentEnemy.draw()
+				elif playerObject.kills >= 3: # if winstate
+					## == WIN SCREEN ==
+					screen.fill(WHITE) # clear screen (to remove previous game frames)
+					win_text = font.render(f'YOU WIN!', True, RED)
+					screen.blit(win_text, (640, 300))
+				else:
+					## == loss SCREEN == (hehe loss)
+					screen.fill(WHITE) # clear screen (to remove previous game frames)
+					loss_text = font.render(f'YOU LOSE! (good day) -ref', True, RED)
+					screen.blit(loss_text, (640, 300))
 	pygame.display.flip()
 	clock.tick(FPS)
